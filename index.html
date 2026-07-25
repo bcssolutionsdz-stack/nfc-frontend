@@ -996,11 +996,17 @@ function AdminPanel() {
     } catch (e) { setErr(e.message); }
   }
 
+  const [convertingLeadId, setConvertingLeadId] = React.useState(null);
+
   async function createBusiness() {
     try {
       const res = await api("/admin/businesses", { method: "POST", token, body: newBiz });
       setJustCreated({ shortCode: res.card.short_code, setupToken: res.setupToken }); setShowCreate(false);
       setNewBiz({ business_name: "", phone: "", email: "", category_id: 1 });
+      if (convertingLeadId) {
+        await api(`/admin/leads/${convertingLeadId}/status`, { method: "PUT", token, body: { status: "converted" } });
+        setConvertingLeadId(null);
+      }
       refresh(token);
     } catch (e) { setErr(e.message); }
   }
@@ -1038,6 +1044,7 @@ function AdminPanel() {
 
   function convertLead(l) {
     setNewBiz({ business_name: l.business_name, phone: l.phone || "", email: l.email || "", category_id: l.category_id || 1 });
+    setConvertingLeadId(l.id);
     setTab("clients");
     setShowCreate(true);
   }
