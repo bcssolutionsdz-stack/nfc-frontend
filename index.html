@@ -380,6 +380,15 @@ function PublicCard({ shortCode }) {
     if (/^https?:\/\//i.test(trimmed) || /^(tel:|mailto:)/i.test(trimmed)) return trimmed;
     return `https://${trimmed}`;
   }
+
+  // يفرّق بين رابط خرائط حقيقي واسم مكان عادي (نص بدون مسافات ويحتوي نقطة = رابط محتمل)
+  function mapsHrefFor(text) {
+    if (!text) return null;
+    const trimmed = text.trim();
+    const looksLikeUrl = !/\s/.test(trimmed) && /\./.test(trimmed);
+    return looksLikeUrl ? normalizeUrl(trimmed) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trimmed)}`;
+  }
+
   const isOrderable = c.categoryId === 1; // الطلب التفاعلي للمطاعم فقط
 
   const cartItems = (c.items || []).filter(it => qty[it.id] > 0).map(it => ({ ...it, quantity: qty[it.id] }));
@@ -414,7 +423,7 @@ function PublicCard({ shortCode }) {
   const actions = [
     c.phone && { href: `tel:${c.phone}`, fa: "fa-solid fa-phone", color: "#16A34A", label: "Appeler" },
     c.whatsapp && { href: `https://wa.me/${c.whatsapp.replace(/^0/, "213")}`, fa: "fa-brands fa-whatsapp", color: "#25D366", label: "WhatsApp", blank: true },
-    c.mapsLink && { href: normalizeUrl(c.mapsLink), fa: "fa-solid fa-location-dot", color: "#EF4444", label: "Itinéraire", blank: true },
+    c.mapsLink && { href: mapsHrefFor(c.mapsLink), fa: "fa-solid fa-location-dot", color: "#EF4444", label: "Itinéraire", blank: true },
     c.website && { href: normalizeUrl(c.website), fa: "fa-solid fa-globe", color: BLUE, label: "Site web", blank: true },
     c.email && { href: `mailto:${c.email}`, fa: "fa-solid fa-envelope", color: "#7C3AED", label: "E-mail" },
     ...socialLinks.map(l => ({ href: normalizeUrl(l.url), fa: SOCIAL_META[l.icon]?.fa || "fa-solid fa-link", color: SOCIAL_META[l.icon]?.color || BLUE, label: l.label, blank: true })),
@@ -453,7 +462,7 @@ function PublicCard({ shortCode }) {
         </div>
 
         {c.address && (
-          <a href={c.mapsLink ? normalizeUrl(c.mapsLink) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`} target="_blank" rel="noreferrer"
+          <a href={mapsHrefFor(c.mapsLink) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.address)}`} target="_blank" rel="noreferrer"
             style={{ color: SLATE }} className="mt-6 text-sm flex items-center justify-center md:justify-start gap-1.5 hover:underline">
             <i className="fa-solid fa-location-dot" style={{ color: accent }}></i> {c.address}
           </a>
