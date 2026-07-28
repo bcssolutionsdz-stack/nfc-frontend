@@ -420,6 +420,32 @@ function PublicCard({ shortCode }) {
 
   const socialLinks = (c.links || []).filter(l => l.url);
 
+  function saveContact() {
+    const lines = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      `FN:${c.contactName || c.businessName}`,
+      `ORG:${c.businessName}`,
+      c.position && `TITLE:${c.position}`,
+      c.phone && `TEL;TYPE=CELL:${c.phone}`,
+      c.whatsapp && `TEL;TYPE=WORK:${c.whatsapp}`,
+      c.email && `EMAIL:${c.email}`,
+      c.website && `URL:${normalizeUrl(c.website)}`,
+      c.address && `ADR:;;${c.address};;;;`,
+      "END:VCARD",
+    ].filter(Boolean).join("\n");
+
+    const blob = new Blob([lines], { type: "text/vcard;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(c.businessName || "contact").replace(/[^\w\-]+/g, "_")}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   const actions = [
     c.phone && { href: `tel:${c.phone}`, fa: "fa-solid fa-phone", color: "#16A34A", label: "Appeler" },
     c.whatsapp && { href: `https://wa.me/${c.whatsapp.replace(/^0/, "213")}`, fa: "fa-brands fa-whatsapp", color: "#25D366", label: "WhatsApp", blank: true },
@@ -433,6 +459,11 @@ function PublicCard({ shortCode }) {
     <div dir="ltr" style={{ background: "linear-gradient(180deg, #EEF3FF 0%, #F8FAFC 320px)", minHeight: "100vh", textAlign: "left" }}>
       <div className="relative h-40 md:h-48 overflow-hidden" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}CC)` }}>
         <div className="absolute inset-0" style={{ background: "radial-gradient(circle at 20% 20%, rgba(255,255,255,0.18), transparent 55%)" }} />
+        <svg className="absolute -top-6 -right-6 opacity-25" width="140" height="140" viewBox="0 0 140 140" fill="none">
+          <circle cx="70" cy="70" r="30" stroke="white" strokeWidth="3" />
+          <circle cx="70" cy="70" r="50" stroke="white" strokeWidth="3" />
+          <circle cx="70" cy="70" r="68" stroke="white" strokeWidth="3" />
+        </svg>
         <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 md:left-10 md:translate-x-0 w-24 h-24 rounded-2xl bg-white shadow-xl flex items-center justify-center text-3xl font-extrabold overflow-hidden ring-4 ring-white" style={{ color: accent }}>
           {c.logoUrl ? <img src={c.logoUrl} alt="" className="w-full h-full object-cover" /> : (c.businessName?.trim()?.[0]?.toUpperCase() || "?")}
         </div>
@@ -448,7 +479,11 @@ function PublicCard({ shortCode }) {
         )}
         {c.tagline && <p style={{ color: SLATE }} className="mt-1 text-[15px]">{c.tagline}</p>}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-7">
+        <button onClick={saveContact} style={{ background: accent }} className="w-full mt-6 py-3.5 rounded-xl text-white font-semibold flex items-center justify-center gap-2 shadow-sm">
+          <i className="fa-solid fa-user-plus"></i> Enregistrer le contact
+        </button>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-5">
           {actions.map((a, i) => (
             <a key={i} href={a.href} target={a.blank ? "_blank" : undefined} rel="noreferrer"
               className="flex flex-col items-center gap-2 py-4 rounded-2xl border transition-transform duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-95"
@@ -474,9 +509,12 @@ function PublicCard({ shortCode }) {
             <div className="flex flex-col gap-2">
               {c.items.map(it => (
                 <div key={it.id} className="flex justify-between items-center px-4 py-3 rounded-lg bg-white border" style={{ borderColor: "#EEF1F6" }}>
-                  <div>
-                    <span className="text-sm block" style={{ color: INK }}>{it.name}</span>
-                    <span className="text-xs font-semibold" style={{ color: accent }}>{it.subtitle}</span>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {it.image_url && <img src={it.image_url} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" style={{ background: "#F1F5F9" }} />}
+                    <div className="min-w-0">
+                      <span className="text-sm block truncate" style={{ color: INK }}>{it.name}</span>
+                      <span className="text-xs font-semibold" style={{ color: accent }}>{it.subtitle}</span>
+                    </div>
                   </div>
                   {isOrderable && (
                     <div className="flex items-center gap-3">
@@ -554,9 +592,18 @@ function PublicCard({ shortCode }) {
 
 function ScreenMsg({ text, isError }) {
   return (
-    <div dir="ltr" style={{ background: "#F8FAFC", minHeight: "100vh" }} className="flex flex-col items-center justify-center px-6 text-center gap-2">
-      {isError && <span className="text-2xl">⚠️</span>}
-      <p style={{ color: isError ? "#0F172A" : "#64748B" }} className="text-sm">{text}</p>
+    <div dir="ltr" style={{ background: "linear-gradient(180deg, #EEF3FF 0%, #F8FAFC 320px)", minHeight: "100vh" }} className="flex flex-col items-center justify-center px-6 text-center gap-4">
+      {isError ? (
+        <>
+          <div style={{ background: "#FEF2F2" }} className="w-16 h-16 rounded-full flex items-center justify-center text-2xl">⚠️</div>
+          <p style={{ color: "#0F172A" }} className="text-sm font-medium max-w-xs">{text}</p>
+        </>
+      ) : (
+        <>
+          <div style={{ borderColor: "#DCE7FF", borderTopColor: "#2554F0" }} className="w-10 h-10 rounded-full border-4 animate-spin" />
+          <p style={{ color: "#64748B" }} className="text-sm">{text}</p>
+        </>
+      )}
     </div>
   );
 }
@@ -750,7 +797,7 @@ function Dashboard() {
   function updateItem(id, field, value) { setItems(items.map(it => it.id === id ? { ...it, [field]: value } : it)); }
   async function persistItem(id) {
     const it = items.find(i => i.id === id);
-    await api(`/business/items/${id}`, { method: "PUT", token, body: { name: it.name, subtitle: it.subtitle } });
+    await api(`/business/items/${id}`, { method: "PUT", token, body: { name: it.name, subtitle: it.subtitle, image_url: it.image_url || "" } });
   }
   async function removeItem(id) {
     await api(`/business/items/${id}`, { method: "DELETE", token });
@@ -892,10 +939,13 @@ function Dashboard() {
                 <button onClick={addItem} style={{ color: BLUE }} className="text-xs font-semibold">+ Ajouter</button>
               </div>
               {items.map(it => (
-                <div key={it.id} className="flex gap-2 mb-2">
-                  <input value={it.name} onChange={e => updateItem(it.id, "name", e.target.value)} onBlur={() => persistItem(it.id)} style={{ background: "#F8FAFC", borderColor: "#E2E8F0", color: INK }} className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none" />
-                  <input value={it.subtitle || ""} onChange={e => updateItem(it.id, "subtitle", e.target.value)} onBlur={() => persistItem(it.id)} style={{ background: "#F8FAFC", borderColor: "#E2E8F0", color: INK }} className="w-24 border rounded-lg px-3 py-2 text-sm outline-none" placeholder="Prix" />
-                  <button onClick={() => removeItem(it.id)} style={{ color: "#DC2626" }}>✕</button>
+                <div key={it.id} className="mb-3 pb-3 border-b" style={{ borderColor: "#F1F5F9" }}>
+                  <div className="flex gap-2">
+                    <input value={it.name} onChange={e => updateItem(it.id, "name", e.target.value)} onBlur={() => persistItem(it.id)} style={{ background: "#F8FAFC", borderColor: "#E2E8F0", color: INK }} className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none" />
+                    <input value={it.subtitle || ""} onChange={e => updateItem(it.id, "subtitle", e.target.value)} onBlur={() => persistItem(it.id)} style={{ background: "#F8FAFC", borderColor: "#E2E8F0", color: INK }} className="w-24 border rounded-lg px-3 py-2 text-sm outline-none" placeholder="Prix" />
+                    <button onClick={() => removeItem(it.id)} style={{ color: "#DC2626" }}>✕</button>
+                  </div>
+                  <input value={it.image_url || ""} onChange={e => updateItem(it.id, "image_url", e.target.value)} onBlur={() => persistItem(it.id)} style={{ background: "#F8FAFC", borderColor: "#E2E8F0", color: INK }} className="w-full border rounded-lg px-3 py-2 text-xs outline-none mt-2" placeholder="Lien de la photo (optionnel)" />
                 </div>
               ))}
               {items.length === 0 && <p style={{ color: "#94A3B8" }} className="text-xs">Aucun élément pour le moment</p>}
